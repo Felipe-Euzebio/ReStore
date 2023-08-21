@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using API.Data;
 using API.DTOs;
 using API.Entities;
+using API.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,17 +22,18 @@ namespace API.Controllers
         [HttpGet(Name = "GetBasket")]
         public async Task<ActionResult<BasketDTO>> GetBasket()
         {
-            var basket = await RetrieveBasket();
+            var basket = await RetrieveBasket(GetBuyerId());
 
             if (basket == null) return NotFound();
 
-            return MapBasketToDTO(basket);
+            // return MapBasketToDTO(basket);
+            return basket.MapBasketToDTO();
         }
 
         [HttpPost]
         public async Task<ActionResult<BasketDTO>> AddBasketItem(int productId, int quantity)
         {
-            var basket = await RetrieveBasket();
+            var basket = await RetrieveBasket(GetBuyerId());
 
             if (basket == null) basket = CreateBasket();
             
@@ -43,7 +45,8 @@ namespace API.Controllers
 
             var result = await _context.SaveChangesAsync() > 0;
 
-            if (result) return CreatedAtRoute("GetBasket", MapBasketToDTO(basket));
+            // if (result) return CreatedAtRoute("GetBasket", MapBasketToDTO(basket));
+            if (result) return CreatedAtRoute("GetBasket", basket.MapBasketToDTO());
 
             return BadRequest(new ProblemDetails {Title = "Problem saving item to basket"});
         }
@@ -51,7 +54,7 @@ namespace API.Controllers
         [HttpDelete]
         public async Task<ActionResult> RemoveBasketItem(int productId, int quantity)
         {
-            var basket = await RetrieveBasket();
+            var basket = await RetrieveBasket(GetBuyerId());
 
             if (basket == null) return NotFound();
 
@@ -64,21 +67,37 @@ namespace API.Controllers
             return BadRequest(new ProblemDetails {Title = "Problem removing item from basket"});
         }
 
-        private async Task<Basket> RetrieveBasket()
+        private async Task<Basket> RetrieveBasket(string buyerId)
         {
+            if (string.IsNullOrEmpty(buyerId))
+            {
+                Response.Cookies.Delete("buyerId");
+                return null;
+            }
+
             return await _context.Baskets
                 .Include(i => i.Items)
                 .ThenInclude(p => p.Product)
-                .FirstOrDefaultAsync(x => x.BuyerId == Request.Cookies["buyerId"]);
+                .FirstOrDefaultAsync(x => x.BuyerId == buyerId);
+        }
+
+        private string GetBuyerId()
+        {
+            return User.Identity?.Name ?? Request.Cookies["buyerId"];
         }
 
         private Basket CreateBasket()
         {
-            var buyerId = Guid.NewGuid().ToString();
+            var buyerId = User.Identity?.Name;
 
-            var cookieOptions = new CookieOptions{IsEssential = true, Expires = DateTime.Now.AddDays(30)};
+            if (string.IsNullOrEmpty(buyerId)) 
+            {
+                buyerId = Guid.NewGuid().ToString();
 
-            Response.Cookies.Append("buyerId", buyerId, cookieOptions);
+                var cookieOptions = new CookieOptions{IsEssential = true, Expires = DateTime.Now.AddDays(30)};
+
+                Response.Cookies.Append("buyerId", buyerId, cookieOptions);
+            }
 
             var basket = new Basket {BuyerId = buyerId};
 
@@ -87,6 +106,7 @@ namespace API.Controllers
             return basket; 
         }
 
+        /*
         private BasketDTO MapBasketToDTO(Basket basket)
         {
             return new BasketDTO
@@ -105,5 +125,6 @@ namespace API.Controllers
                 }).ToList()
             };
         }
+        */
     }
 }
