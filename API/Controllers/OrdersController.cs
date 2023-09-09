@@ -81,6 +81,7 @@ namespace API.Controllers
                 ShippingAddress = orderDTO.ShippingAddress,
                 Subtotal = subtotal,
                 DeliveryFee = deliveryFee,
+                PaymentIntentId = basket.PaymentIntentId
             };
 
             _context.Orders.Add(order);
