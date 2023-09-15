@@ -74,7 +74,7 @@ export const accountSlice = createSlice({
         builder.addMatcher(isAnyOf(signInUser.fulfilled, fetchCurrentUser.fulfilled), (state, action) => {
             state.user = action.payload;
         });
-        builder.addMatcher(isAnyOf(signInUser.rejected), (state, action) => {
+        builder.addMatcher(isAnyOf(signInUser.rejected), (_, action) => {
             throw action.payload;
         });
     })
