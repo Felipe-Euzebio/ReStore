@@ -479,3 +479,9 @@ API/store.db-wal
 API/store.db-shm
 API/appsettings.json
 API/store.db
+
+# Build results
+API/wwwroot
+
+# Misc
+API/docker-runbuild.sh
