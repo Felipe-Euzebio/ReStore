@@ -481,7 +481,7 @@ API/appsettings.json
 API/store.db
 
 # Build results
-API/wwwroot
+# API/wwwroot
 
 # Misc
 API/docker-runbuild.sh
